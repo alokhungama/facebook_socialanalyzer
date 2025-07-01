@@ -5,3 +5,4 @@ sqlalchemy
 python-dotenv
 requests
 google-generativeai
+flask

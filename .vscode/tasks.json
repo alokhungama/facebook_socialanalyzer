@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Streamlit App",
+			"type": "shell",
+			"command": "streamlit run app.py --server.port 8501 --server.address 0.0.0.0",
+			"group": "none",
+			"isBackground": true
+		}
+	]
+}

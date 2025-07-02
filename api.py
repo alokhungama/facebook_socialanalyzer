@@ -172,28 +172,33 @@ async def mcp_tool_handler(payload: MCPToolRequest):
         account_id = params.get("account_id", "")
         date_range = params.get("date_range", "LAST_7_DAYS")
 
-        dummy_data = [
-            {
-                "ad_name": "Sample Ad",
-                "ad_id": "123",
-                "clicks": 100,
-                "spend": 25.50
-            }
-        ]
-        insights = "Sample Ad is performing well. Consider increasing the budget."
+        # Compose a natural language query dynamically
+        if endpoint == "summary":
+            query = f"Show me a summary of Facebook ad performance for account {account_id} in the {date_range}."
+        else:
+            query = endpoint  # assume endpoint is already a natural language query
 
-        return {
-            "data": dummy_data,
+        # Run through GeminiQueryEngine
+        result = gemini_engine.process_query(query)
+
+        response = {
+            "data": result["data"].to_dict(orient="records") if result.get("data") is not None else [],
             "metadata": {
                 "account_id": account_id,
                 "date_range": date_range,
-                "intent": endpoint
+                "query": query,
+                "sql_query": result.get("sql_query")
             },
-            "insights": insights
+            "insights": result.get("insights", ""),
+            "error": result.get("error", None)
         }
+
+        return response
+
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        raise HTTPException(status_code=500, detail=str(e))
 
 # === Uvicorn Entry Point ===
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+

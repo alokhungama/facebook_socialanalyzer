@@ -1,4 +1,3 @@
-
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -15,13 +14,13 @@ class GeminiQueryEngine:
     def __init__(self, database_manager):
         self.db_manager = database_manager
         self.api_key = os.getenv('GEMINI_API_KEY', '')
-        
+
         if not self.api_key:
             logger.warning("Gemini API key not found in environment variables")
         else:
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel('gemini-1.5-flash')
-        
+
         self.schema_info = self.db_manager.get_schema_info()
 
     def process_query(self, user_query: str) -> Dict[str, Any]:
@@ -37,7 +36,6 @@ class GeminiQueryEngine:
                 }
 
             data = self.db_manager.execute_query(sql_query)
-
             insights = self._generate_insights(user_query, data, sql_query)
 
             return {
@@ -74,17 +72,17 @@ Instructions:
 - Use WHERE clauses, GROUP BY, ORDER BY, and LIMIT as needed.
 - Always select human-readable fields (e.g., campaign name) alongside IDs where available.
 - Use aliases to improve readability (e.g., `c.name AS campaign_name`).
-- When filtering by month or year, assume timestamp fields are stored as strings in the format `'YYYY-MM-DDTHH:MI:SS'` or `'YYYY-MM-DD'`.
+- When filtering by month or year, assume timestamp fields are stored as strings in the format 'YYYY-MM-DDTHH:MI:SS' or 'YYYY-MM-DD'.
 
     ✅ For campaign or ad timestamps like `created_time`, `start_time`, `stop_time`:
     Use: 
         DATE_PART('month', TO_TIMESTAMP(field, 'YYYY-MM-DD"T"HH24:MI:SS')) = MM
         DATE_PART('year', TO_TIMESTAMP(field, 'YYYY-MM-DD"T"HH24:MI:SS')) = YYYY
 
-    ✅ For ad_insights fields like `date_start` or `date_stop` (which are date-only):
-    Use: 
-        DATE_PART('month', TO_DATE(date_start, 'YYYY-MM-DD')) = MM
-        DATE_PART('year', TO_DATE(date_start, 'YYYY-MM-DD')) = YYYY
+    ✅ For ad_insights fields like `date_start` or `date_stop` (which are already stored as DATE type):
+    Use:
+        DATE_PART('month', date_start) = MM
+        DATE_PART('year', date_start) = YYYY
 
 - Do not use UPDATE, DELETE, INSERT, or CREATE statements — SELECT only.
 
@@ -92,7 +90,6 @@ User Query: {user_query}
 
 SQL Query:
 """
-
 
             if hasattr(self, 'model'):
                 response = self.model.generate_content(prompt)
@@ -118,6 +115,10 @@ SQL Query:
         response = response.strip()
         if not response.endswith(';'):
             response += ';'
+
+        # Remove incorrect TO_DATE usage on DATE columns
+        response = re.sub(r"TO_DATE\((date_start|date_stop),\s*'YYYY-MM-DD'\)", r"\1", response)
+
         return response
 
     def _generate_insights(self, user_query: str, data: pd.DataFrame, sql_query: str) -> str:
@@ -161,4 +162,3 @@ Instructions:
             for col in numeric_cols[:3]:
                 summary += f"{col}: min={data[col].min()}, max={data[col].max()}, mean={data[col].mean():.2f}\n"
         return summary
-    

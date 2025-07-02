@@ -3,7 +3,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from database import DatabaseManager
 from facebook_api import FacebookAPI
-from gemini_query import GeminiQueryEnimport pandas as pd
+from gemini_query import GeminiQueryEngine
+import pandas as pd
 import os
 from dotenv import load_dotenv
 import uvicorn

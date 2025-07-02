@@ -3,8 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from database import DatabaseManager
 from facebook_api import FacebookAPI
-from gemini_query import GeminiQueryEngine
-import pandas as pd
+from gemini_query import GeminiQueryEnimport pandas as pd
 import os
 from dotenv import load_dotenv
 import uvicorn
@@ -143,7 +142,6 @@ def auto_query(request: AIQueryRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 # Run with: uvicorn api:app --host 0.0.0.0 --port 8000
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)

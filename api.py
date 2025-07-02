@@ -143,23 +143,7 @@ def auto_query(request: AIQueryRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-from fastapi.responses import FileResponse
-from typing import Dict, Any
-
-#Serve plugin files (.well-known and static/logo)
-@app.get("/.well-known/{filename}")
-async def serve_plugin_manifest(filename: str):
-        return FileResponse(os.path.join(".well-known", filename))
-
-@app.get("/static/{filename}")
-async def serve_static_file(filename: str):
-        return FileResponse(os.path.join("static", filename))
-
-#Tool call request format
-class MCPToolRequest(BaseModel):
-        endpoint: str
-        params: Dict[str, Any]
-
+        
 #Main tool endpoint for Open WebUI + Ollama
 from fastapi.responses import FileResponse
 from typing import Dict, Any
@@ -181,33 +165,33 @@ class MCPToolRequest(BaseModel):
 #Main tool endpoint for Open WebUI + Ollama
 @app.post("/mcp_tool")
 async def mcp_tool_handler(payload: MCPToolRequest):
-        try:
-                endpoint = payload.endpoint
-                params = payload.params
-                account_id = params.get("account_id", "")
-                date_range = params.get("date_range", "LAST_7_DAYS")
-                dummy_data = [
-        {
-            "ad_name": "Sample Ad",
-            "ad_id": "123",
-            "clicks": 100,
-            "spend": 25.50
+    try:
+        endpoint = payload.endpoint
+        params = payload.params
+        account_id = params.get("account_id", "")
+        date_range = params.get("date_range", "LAST_7_DAYS")
+        dummy_data = [
+            {
+                "ad_name": "Sample Ad",
+                "ad_id": "123",
+                "clicks": 100,
+                "spend": 25.50
+            }
+        ]
+
+        insights = "Sample Ad is performing well. Consider increasing the budget."
+
+        return {
+            "data": dummy_data,
+            "metadata": {
+                "account_id": account_id,
+                "date_range": date_range,
+                "intent": endpoint
+            },
+            "insights": insights
         }
-    ]
-
-    insights = "Sample Ad is performing well. Consider increasing the budget."
-
-    return {
-        "data": dummy_data,
-        "metadata": {
-            "account_id": account_id,
-            "date_range": date_range,
-            "intent": endpoint
-        },
-        "insights": insights
-    }
-except Exception as e:
-    return JSONResponse(status_code=500, content={"error": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Run with: uvicorn api:app --host 0.0.0.0 --port 8000
 if __name__ == "__main__":

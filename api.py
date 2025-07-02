@@ -8,6 +8,7 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 import uvicorn
+from fastapi import Query
 
 load_dotenv()
 

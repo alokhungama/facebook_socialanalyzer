@@ -71,39 +71,18 @@ def fetch_data(request: FetchDataRequest):
 
 
 @app.get("/load_data")
-def load_data(
-    table: str = Query("all", enum=["all", "campaigns", "adsets", "ads", "ad_insights"]),
-    limit: int = Query(100, ge=1, le=1000)
-):
-    """
-    Load limited data from a specific table.
-    Supported tables: campaigns, adsets, ads, ad_insights
-    Use 'all' to get a preview of each (limited).
-    """
+def load_data():
     try:
-        if table == "campaigns":
-            return {"campaigns": db_manager.get_campaigns()[:limit]}
-
-        elif table == "adsets":
-            return {"adsets": db_manager.get_adsets()[:limit]}
-
-        elif table == "ads":
-            return {"ads": db_manager.get_ads()[:limit]}
-
-        elif table == "ad_insights":
-            return {"ad_insights": db_manager.get_ad_insights()[:limit]}
-
-        elif table == "all":
-            return {
-                "campaigns": db_manager.get_campaigns()[:limit],
-                "adsets": db_manager.get_adsets()[:limit],
-                "ads": db_manager.get_ads()[:limit],
-                "ad_insights": db_manager.get_ad_insights()[:limit]
-            }
-
-        else:
-            raise HTTPException(status_code=400, detail="Invalid table name.")
-
+        campaigns = db_manager.get_campaigns()
+        adsets = db_manager.get_adsets()
+        ads = db_manager.get_ads()
+        ad_insights = db_manager.get_ad_insights()
+        return {
+            "campaigns": campaigns,
+            "adsets": adsets,
+            "ads": ads,
+            "ad_insights": ad_insights
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from database import DatabaseManager
@@ -8,7 +8,6 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 import uvicorn
-from fastapi import Query
 
 load_dotenv()
 
@@ -34,9 +33,7 @@ def index():
 def status():
     """Check DB and Facebook API connectivity."""
     try:
-        # Test DB connection
         campaigns = db_manager.get_campaigns()
-        # Test Facebook API (will not fetch real data, just check token)
         token = os.getenv('FACEBOOK_ACCESS_TOKEN', None)
         fb_ok = bool(token and len(token) > 0)
         return {"db_connected": True, "facebook_token_present": fb_ok, "campaigns_in_db": len(campaigns)}
@@ -68,7 +65,6 @@ def fetch_data(request: FetchDataRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/load_data")
 def load_data():
@@ -103,6 +99,48 @@ def ai_query(request: AIQueryRequest):
         if result.get('error'):
             response['error'] = result['error']
         return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auto_query")
+def auto_query(request: AIQueryRequest):
+    """
+    Automatically fetches data from Facebook, stores it in DB,
+    and then runs the AI query using Gemini.
+    """
+    try:
+        account_id = os.getenv("DEFAULT_ACCOUNT_ID", "")
+        if not account_id:
+            raise HTTPException(status_code=400, detail="Missing DEFAULT_ACCOUNT_ID in .env")
+
+        # Step 1: Fetch and Store Fresh Data
+        campaigns = facebook_api.fetch_campaigns(account_id)
+        adsets = facebook_api.fetch_adsets(account_id)
+        ads = facebook_api.fetch_ads(account_id)
+        ad_insights = facebook_api.fetch_ad_insights(account_id)
+
+        db_manager.store_campaigns(campaigns)
+        db_manager.store_adsets(adsets)
+        db_manager.store_ads(ads)
+        db_manager.store_ad_insights(ad_insights)
+
+        # Step 2: AI Query on Fresh Data
+        result = gemini_engine.process_query(request.query)
+
+        return {
+            "fetch_status": "success",
+            "fetched_counts": {
+                "campaigns": len(campaigns),
+                "adsets": len(adsets),
+                "ads": len(ads),
+                "ad_insights": len(ad_insights)
+            },
+            "insights": result.get("insights"),
+            "sql_query": result.get("sql_query"),
+            "data": result["data"].to_dict(orient='records') if result.get("data") is not None else [],
+            "error": result.get("error")
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
